@@ -1,0 +1,167 @@
+-- =====================================================
+-- SUPERSTORE SALES ANALYSIS USING SQL
+-- Concepts Used:
+-- 1. Subqueries
+-- 2. Common Table Expressions (CTEs)
+-- 3. Window Functions
+-- 4. Joins
+-- 5. Aggregations
+-- =====================================================
+
+---
+
+## -- STEP 1: CREATE CUSTOMERS TABLE
+
+CREATE TABLE customers AS
+SELECT DISTINCT
+"Customer ID" AS customer_id,
+"Customer Name" AS customer_name,
+Segment
+FROM superstore_raw;
+
+---
+
+## -- STEP 2: CREATE ORDERS TABLE
+
+CREATE TABLE orders AS
+SELECT DISTINCT
+"Order ID" AS order_id,
+"Order Date" AS order_date,
+"Customer ID" AS customer_id,
+Sales
+FROM superstore_raw;
+
+---
+
+## -- STEP 3: CREATE PRODUCTS TABLE
+
+CREATE TABLE products AS
+SELECT DISTINCT
+"Product ID" AS product_id,
+"Product Name" AS product_name,
+Category,
+"Sub-Category" AS sub_category
+FROM superstore_raw;
+
+---
+
+## -- STEP 4: ABOVE AVERAGE SALES (SUBQUERY)
+
+SELECT *
+FROM orders
+WHERE sales >
+(
+SELECT AVG(sales)
+FROM orders
+);
+
+---
+
+## -- STEP 5: HIGHEST ORDER PER CUSTOMER
+
+SELECT *
+FROM orders o
+WHERE sales =
+(
+SELECT MAX(sales)
+FROM orders
+WHERE customer_id = o.customer_id
+);
+
+---
+
+## -- STEP 6: TOTAL SALES PER CUSTOMER (CTE)
+
+WITH customer_sales AS
+(
+SELECT
+customer_id,
+SUM(sales) AS total_sales
+FROM orders
+GROUP BY customer_id
+)
+SELECT *
+FROM customer_sales;
+
+---
+
+## -- STEP 7: TOP 10 CUSTOMERS
+
+WITH customer_sales AS
+(
+SELECT
+customer_id,
+SUM(sales) AS total_sales
+FROM orders
+GROUP BY customer_id
+)
+SELECT *
+FROM customer_sales
+ORDER BY total_sales DESC
+LIMIT 10;
+
+---
+
+## -- STEP 8: SINGLE ORDER CUSTOMERS
+
+SELECT
+customer_id,
+COUNT(order_id) AS total_orders
+FROM orders
+GROUP BY customer_id
+HAVING COUNT(order_id) = 1;
+
+---
+
+## -- STEP 9: ROW_NUMBER()
+
+SELECT
+customer_id,
+sales,
+ROW_NUMBER() OVER
+(
+ORDER BY sales DESC
+) AS row_num
+FROM orders;
+
+---
+
+## -- STEP 10: RANK()
+
+SELECT
+customer_id,
+sales,
+RANK() OVER
+(
+ORDER BY sales DESC
+) AS rank_no
+FROM orders;
+
+---
+
+## -- STEP 11: FINAL CUSTOMER RANKING ANALYSIS
+
+WITH customer_sales AS
+(
+SELECT
+customer_id,
+SUM(sales) AS total_sales
+FROM orders
+GROUP BY customer_id
+)
+
+SELECT
+c.customer_id,
+c.customer_name,
+cs.total_sales,
+
+```
+RANK() OVER
+(
+    ORDER BY cs.total_sales DESC
+) AS customer_rank
+```
+
+FROM customers c
+JOIN customer_sales cs
+ON c.customer_id = cs.customer_id;
